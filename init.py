@@ -107,8 +107,12 @@ print("Setting up WSGI application...")
 wsgi_application = StaticFilesHandler(get_wsgi_application())
 app = TestApp(wsgi_application)
 
+# Import data utilities for JavaScript access
+from django_webassembly import data_utils
+
 print("Django WebAssembly initialized successfully!")
 print(f"  - Django version: {django.VERSION}")
 print(f"  - Demo login: {DEMO_USERNAME} / {DEMO_PASSWORD}")
 print("  - Visit /admin to access the admin interface")
 print("  - Visit /polls to try the example polls app")
+print("  - Visit /tools to access developer tools")

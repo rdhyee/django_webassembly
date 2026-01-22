@@ -3,8 +3,27 @@
 
 const PYODIDE_VERSION = "0.29.2";
 const WHEEL_VERSION = "0.2.0";
+const CACHE_VERSION = "v2";
+const CACHE_NAME = `django-wasm-${CACHE_VERSION}`;
 
-importScripts(`https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/pyodide.js`);
+// Resources to cache for offline use and faster loading
+const PYODIDE_CDN = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full`;
+const CACHEABLE_PATTERNS = [
+  // Pyodide core files (these are large, caching is critical)
+  /cdn\.jsdelivr\.net\/pyodide/,
+  // Pyodide packages
+  /\.whl$/,
+  /\.zip$/,
+  // Static assets
+  /\.(js|css|woff|woff2|ttf|png|jpg|jpeg|gif|ico|svg)$/,
+];
+
+// Files that should never be cached (dynamic content)
+const NEVER_CACHE = [
+  /\/admin\//,  // Admin pages have CSRF tokens
+];
+
+importScripts(`${PYODIDE_CDN}/pyodide.js`);
 importScripts("https://cdn.jsdelivr.net/npm/xhr-shim@0.1.3/src/index.min.js");
 
 // XMLHttpRequest not normally available in service worker (needed by pyodide)
@@ -13,6 +32,7 @@ self.XMLHttpRequest = self.XMLHttpRequestShim;
 let pyodide = null;
 let loaded = false;
 let loadError = null;
+let loadStartTime = null;
 const cookies = {};
 
 // Notify clients of loading progress
@@ -23,39 +43,128 @@ const notifyClients = async (message) => {
   });
 };
 
+// Check if URL should be cached
+const shouldCache = (url) => {
+  // Never cache certain patterns
+  for (const pattern of NEVER_CACHE) {
+    if (pattern.test(url)) return false;
+  }
+  // Cache matching patterns
+  for (const pattern of CACHEABLE_PATTERNS) {
+    if (pattern.test(url)) return true;
+  }
+  return false;
+};
+
+// Fetch with caching support
+const cachedFetch = async (url, options = {}) => {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Try cache first for cacheable resources
+  if (shouldCache(url)) {
+    const cached = await cache.match(url);
+    if (cached) {
+      console.log(`Cache hit: ${url}`);
+      return cached;
+    }
+  }
+
+  // Fetch from network
+  const response = await fetch(url, options);
+
+  // Cache successful responses for cacheable resources
+  if (response.ok && shouldCache(url)) {
+    console.log(`Caching: ${url}`);
+    cache.put(url, response.clone());
+  }
+
+  return response;
+};
+
 const setupPython = async () => {
+  loadStartTime = Date.now();
+
   try {
-    await notifyClients({ type: "loading", stage: "pyodide", message: "Loading Python runtime..." });
+    await notifyClients({
+      type: "loading",
+      stage: "pyodide",
+      message: "Loading Python runtime...",
+      progress: 10,
+    });
 
-    pyodide = await loadPyodide();
+    // Configure Pyodide to use our cached fetch
+    pyodide = await loadPyodide({
+      indexURL: PYODIDE_CDN,
+    });
 
-    await notifyClients({ type: "loading", stage: "packages", message: "Installing packages..." });
+    await notifyClients({
+      type: "loading",
+      stage: "packages",
+      message: "Installing packages...",
+      progress: 50,
+    });
 
     await pyodide.loadPackage("micropip");
     const micropip = pyodide.pyimport("micropip");
     await micropip.install("tzdata");
     await micropip.install(`./wheel/django_webassembly-${WHEEL_VERSION}-py3-none-any.whl`);
 
-    await notifyClients({ type: "loading", stage: "django", message: "Initializing Django..." });
+    await notifyClients({
+      type: "loading",
+      stage: "django",
+      message: "Initializing Django...",
+      progress: 80,
+    });
 
     const initScript = await (await fetch("./init.py")).text();
     pyodide.runPython(initScript);
 
+    const loadTime = ((Date.now() - loadStartTime) / 1000).toFixed(1);
     loaded = true;
     loadError = null;
 
-    await notifyClients({ type: "loaded", message: "Ready!" });
+    await notifyClients({
+      type: "loaded",
+      message: `Ready! (loaded in ${loadTime}s)`,
+      progress: 100,
+      loadTime: loadTime,
+    });
+
+    console.log(`Django WebAssembly loaded in ${loadTime}s`);
   } catch (error) {
     loadError = error;
     console.error("Failed to setup Python:", error);
-    await notifyClients({ type: "error", message: `Failed to load: ${error.message}` });
+    await notifyClients({
+      type: "error",
+      message: `Failed to load: ${error.message}`,
+    });
     throw error;
   }
 };
 
 self.addEventListener("install", (event) => {
   console.log("Service Worker: Installing...");
+  // Skip waiting to activate immediately
+  self.skipWaiting();
   event.waitUntil(setupPython());
+});
+
+self.addEventListener("activate", (event) => {
+  console.log("Service Worker: Activated");
+
+  // Clean up old caches
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME && cacheName.startsWith("django-wasm-")) {
+            console.log(`Deleting old cache: ${cacheName}`);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 // Build cookie string from stored cookies
@@ -221,11 +330,6 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(djangoRequest(event.request));
 });
 
-self.addEventListener("activate", (event) => {
-  console.log("Service Worker: Activated");
-  event.waitUntil(self.clients.claim());
-});
-
 // Handle messages from the main page
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "GET_STATUS") {
@@ -234,6 +338,11 @@ self.addEventListener("message", (event) => {
       loaded: loaded,
       error: loadError ? loadError.message : null,
       pyodideVersion: PYODIDE_VERSION,
+      cacheVersion: CACHE_VERSION,
+    });
+  } else if (event.data && event.data.type === "CLEAR_CACHE") {
+    caches.delete(CACHE_NAME).then(() => {
+      event.source.postMessage({ type: "cache_cleared" });
     });
   }
 });

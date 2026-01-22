@@ -21,37 +21,68 @@
       .loading-container {
         text-align: center;
         background: white;
-        padding: 3rem;
-        border-radius: 12px;
+        padding: 2.5rem;
+        border-radius: 16px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        max-width: 400px;
+        max-width: 420px;
+        width: 90%;
+      }
+      .logo {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
       }
       h1 {
-        margin: 0 0 1rem;
+        margin: 0 0 0.5rem;
         color: #333;
         font-size: 1.5rem;
       }
-      .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 1.5rem auto;
+      .subtitle {
+        color: #666;
+        margin: 0 0 1.5rem;
+        font-size: 0.9rem;
       }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      .progress-container {
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+        margin: 1rem 0;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 10px;
+        width: 0%;
+        transition: width 0.3s ease;
       }
       #loading-status {
-        color: #666;
-        font-size: 0.9rem;
+        color: #555;
+        font-size: 0.95rem;
         min-height: 1.5em;
+        margin: 1rem 0;
       }
       #loading-status.error {
         color: #dc3545;
         font-weight: 500;
+      }
+      .loading-stages {
+        display: flex;
+        justify-content: space-between;
+        margin: 1rem 0;
+        padding: 0;
+        list-style: none;
+      }
+      .loading-stages li {
+        font-size: 0.75rem;
+        color: #aaa;
+        transition: color 0.3s;
+      }
+      .loading-stages li.active {
+        color: #667eea;
+        font-weight: 600;
+      }
+      .loading-stages li.complete {
+        color: #28a745;
       }
       .note {
         margin-top: 1.5rem;
@@ -60,16 +91,49 @@
         font-size: 0.8rem;
         color: #999;
       }
+      .note strong {
+        color: #666;
+      }
+      .browser-warning {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: none;
+      }
+      .browser-warning.show {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <div class="loading-container">
+      <div class="logo">🐍</div>
       <h1>Django WebAssembly</h1>
-      <div class="spinner"></div>
+      <p class="subtitle">Running Django in your browser</p>
+
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <ul class="loading-stages">
+        <li id="stage-init" class="active">Initialize</li>
+        <li id="stage-pyodide">Python</li>
+        <li id="stage-packages">Packages</li>
+        <li id="stage-django">Django</li>
+      </ul>
+
       <p id="loading-status">Initializing...</p>
+
+      <div class="browser-warning" id="browser-warning">
+        <strong>Browser not supported</strong><br>
+        <span id="warning-message"></span>
+      </div>
+
       <p class="note">
-        Loading Python runtime (~20MB).<br>
-        This may take a moment on first visit.
+        <strong>First visit?</strong> Loading ~20MB Python runtime.<br>
+        <strong>Returning?</strong> Much faster from cache!
       </p>
     </div>
     <script src="./app.js"></script>

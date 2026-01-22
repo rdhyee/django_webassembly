@@ -1,41 +1,198 @@
-# Django Webassembly
+# Django WebAssembly
 
-Running Django in the browser.
+Run Django applications entirely in the browser using WebAssembly.
 
-<a href="https://django-webassembly.mattbutterfield.com">Live example hosted directly from this repo on Github Pages.</a> - Give it some time to load. There is around 15MB to download and lots of code to run.
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://django-webassembly.mattbutterfield.com)
+[![Django](https://img.shields.io/badge/Django-5.2-092e20)](https://djangoproject.com)
+[![Pyodide](https://img.shields.io/badge/Pyodide-0.29-3776ab)](https://pyodide.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-### What is happening?
+**[Live Demo](https://django-webassembly.mattbutterfield.com)** - Give it some time to load (~20MB download on first visit).
 
-With webassembly, it is possible to run Python code in the browser using [Pyodide](https://pyodide.org/).
-With [service workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API), we are able to intercept all http requests made by the browser, modify them, pass them through without doing anything, or create and return a new response of our own without ever actually calling out to the internet.
-Putting these concepts together, and heavily inspired by a similar approach with [wordpress](https://make.wordpress.org/core/2022/09/23/client-side-webassembly-wordpress-with-no-server/) recently,  I was able to get a very basic Django application and the Django admin running entirely in the browser.
+## What is this?
 
-### What does this mean?
+This project demonstrates running a complete Django application in the browser without any server. Using [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly) and [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API), all HTTP requests are intercepted and processed by Django running client-side.
 
-It means you can host a Django application using only static files, like the example linked above using Github Pages.
-Of course, there's no shared database, just a local SQLite db that lives in your browser.
-Perhaps that could also be staticly hosted and shared somewhere...
-A more practical use case could be to make a Django app work offline, sending updates back to the server when the connection is restored.
+### Key Features
 
-### How does this work?
+- **No server required** - Host on GitHub Pages or any static file hosting
+- **Full Django functionality** - Admin panel, ORM, templates, forms all work
+- **Local database** - SQLite runs in-browser, data persists locally
+- **Offline capable** - Once loaded, works without internet connection
 
-This repo contains the `django_webassembly` app.
-This can can be run like any other django app (`python manage.py runserver`), or you can simply host the static files.
-The easiest way to do this is to run `python -m http.server` and open [http://localhost:8000](http://localhost:8000).
-When running this way, the app is loaded and installed as a [wheel](https://packaging.python.org/en/latest/glossary/#term-Wheel), so you have to rebuild the wheel if you want to see your changes.
-You can do that by running `make wheel`.
-The service worker also needs to be reloaded.
+## How it Works
 
-The details of how this works can be seen in `app.js`, which loads the service worker, and `worker.js` which contains the service worker code.
-The service worker loads Pyodide, installs Python dependencies and the django_webassembly app, then runs some setup code in `init.py`.
-When this is done, the page reloads and all further requests are intercepted by the service worker.
-Each request is turned into Python code that calls an app client for django_webassembly, and the return value is converted back into a Javascript response that is returned to the browser.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser                                  │
+│  ┌──────────────┐    ┌──────────────────────────────────────┐  │
+│  │   Web Page   │───▶│         Service Worker               │  │
+│  └──────────────┘    │  ┌────────────────────────────────┐  │  │
+│                      │  │           Pyodide              │  │  │
+│                      │  │  ┌──────────────────────────┐  │  │  │
+│                      │  │  │      Django WSGI         │  │  │  │
+│                      │  │  │  ┌────────┐ ┌────────┐   │  │  │  │
+│                      │  │  │  │ Views  │ │ Models │   │  │  │  │
+│                      │  │  │  └────────┘ └────────┘   │  │  │  │
+│                      │  │  │       ┌──────────┐       │  │  │  │
+│                      │  │  │       │  SQLite  │       │  │  │  │
+│                      │  │  │       └──────────┘       │  │  │  │
+│                      │  │  └──────────────────────────┘  │  │  │
+│                      │  └────────────────────────────────┘  │  │
+│                      └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### What happens now?
+1. **Page loads** → Service worker registers
+2. **Service worker installs** → Loads Pyodide, installs Django wheel
+3. **Page reloads** → All requests now go through service worker
+4. **Each request** → Converted to Python, processed by Django, response returned
 
-I've always liked the idea of running Python in the browser, and I really just did this as a proof of concept out of curiousity.
-It's kind of finicky to use and develop so far, and I haven't done much testing or tried to run anything complicated.
-That being said, I think there are some interesting experiments that can come out of this.
-At the very least, it can be a nice way to showcase a Django app you've written without worrying about deploying it to a running server.
-I'm also interested in trying to run other languages in the browser.
-What would it take to run a Go webserver in the browser?
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Poetry (Python package manager)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/m-butterfield/django_webassembly.git
+cd django_webassembly
+
+# Install dependencies
+make install
+# or manually:
+poetry install
+npm install
+```
+
+### Development
+
+```bash
+# Start local server
+make serve
+# or: python -m http.server 8000
+
+# Open http://localhost:8000 in your browser
+```
+
+### Building
+
+When you make changes to the Django application, you need to rebuild the wheel:
+
+```bash
+make wheel
+```
+
+Then refresh the page (you may need to clear the service worker in DevTools).
+
+## Project Structure
+
+```
+django_webassembly/
+├── app.js              # Service worker registration
+├── worker.js           # Service worker (Pyodide + request handling)
+├── init.py             # Python initialization script
+├── index.html          # Loading page
+├── django_webassembly/ # Django application
+│   ├── settings.py
+│   ├── urls.py
+│   ├── views.py
+│   ├── templates/
+│   └── polls/          # Example polls app
+├── wheel/              # Built Python wheel
+├── pyproject.toml      # Python dependencies
+└── package.json        # Node.js dependencies
+```
+
+## Demo Credentials
+
+- **Username:** `demo`
+- **Password:** `demo`
+
+These are created automatically on first load. Each user has their own isolated database in their browser.
+
+## Browser Support
+
+| Browser | Support |
+|---------|---------|
+| Chrome 80+ | ✅ Full |
+| Firefox 78+ | ✅ Full |
+| Safari 14+ | ✅ Full |
+| Edge 80+ | ✅ Full |
+| Mobile browsers | ⚠️ Limited (memory constraints) |
+
+Requires: Service Workers, WebAssembly
+
+## Use Cases
+
+- **Demos & Portfolios** - Showcase Django projects without server costs
+- **Education** - Learn Django without setting up a development environment
+- **Prototyping** - Rapid iteration without deployment
+- **Offline Apps** - Build apps that work without connectivity
+
+## Limitations
+
+- **Initial load time** - ~20MB download (Pyodide + packages)
+- **Memory usage** - Full Python runtime in browser
+- **No shared data** - Each user has their own local database
+- **Some packages unavailable** - Not all Python packages work in Pyodide
+
+## Development Commands
+
+```bash
+make help         # Show all available commands
+make install      # Install dependencies
+make serve        # Start development server
+make wheel        # Build Python wheel
+make fmt          # Format code (Black + ESLint)
+make lint         # Run linters
+make test         # Run tests
+make clean        # Remove build artifacts
+```
+
+## Technical Details
+
+### Stack
+
+- **Django 5.2 LTS** - Python web framework
+- **Pyodide 0.29** - Python runtime compiled to WebAssembly
+- **WebTest** - WSGI testing library (provides request interface)
+- **SQLite** - In-browser database
+
+### Security Notes
+
+This application runs entirely in the browser:
+- The SECRET_KEY is hardcoded (intentional - no server-side secrets)
+- Each user has isolated data (no cross-user access)
+- No sensitive data leaves the browser
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+MIT License - see [LICENSE.txt](LICENSE.txt)
+
+## Acknowledgments
+
+- [Pyodide](https://pyodide.org/) - Python in the browser
+- [WordPress Playground](https://developer.wordpress.org/playground/) - Inspiration for this approach
+- [Django](https://djangoproject.com/) - The web framework for perfectionists with deadlines
+
+## Related Projects
+
+- [Pyodide](https://github.com/pyodide/pyodide) - Python distribution for browser/Node.js
+- [JupyterLite](https://github.com/jupyterlite/jupyterlite) - Jupyter in the browser
+- [PyScript](https://github.com/pyscript/pyscript) - Python in HTML

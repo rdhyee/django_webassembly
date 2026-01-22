@@ -1,17 +1,53 @@
 [tool.poetry]
 name = "django_webassembly"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "Run Django applications entirely in the browser using WebAssembly"
 authors = ["Matt Butterfield <matt@mattbutterfield.com>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/m-butterfield/django_webassembly"
+keywords = ["django", "webassembly", "pyodide", "browser", "wasm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-Django = "^4.1.1"
+python = "^3.11"
+Django = "^5.2"
 WebTest = "^3.0.0"
 
-[tool.poetry.dev-dependencies]
-black = "^22.8.0"
-ipdb = "^0.13.9"
+[tool.poetry.group.dev.dependencies]
+black = "^24.0.0"
+ipdb = "^0.13.13"
+pytest = "^8.0.0"
+pytest-django = "^4.8.0"
+ruff = "^0.4.0"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "django_webassembly.settings"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "DJ"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312", "py313"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

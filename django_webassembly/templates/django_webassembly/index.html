@@ -1,12 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>django webassembly</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Django WebAssembly</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #092e20;
+      margin-top: 0;
+    }
+    .badge {
+      display: inline-block;
+      background: #44b78b;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+    .links {
+      display: flex;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+    .links a {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #092e20;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .links a:hover {
+      background: #0c4b33;
+    }
+    .info-box {
+      background: #e8f4f0;
+      border-left: 4px solid #44b78b;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .info-box code {
+      background: #d1e7dd;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-family: "SF Mono", Monaco, "Courier New", monospace;
+    }
+    .tech-stack {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .tech-stack span {
+      background: #eee;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    footer a {
+      color: #092e20;
+    }
+  </style>
 </head>
 <body>
-<h1>Django Webassembly.</h1>
-<p>Welcome to Django running on Webassembly in your browser.</p>
-<p><a href="/admin">Go to the admin</a> - log in with user: 'matt' and password: 'password'</p>
-<p><a href="/polls">Polls example app</a></p>
+  <div class="container">
+    <h1>Django WebAssembly <span class="badge">v0.2.0</span></h1>
+
+    <p>Welcome to Django running entirely in your browser via WebAssembly. There is no server - everything runs client-side using Python compiled to WebAssembly.</p>
+
+    <div class="links">
+      <a href="/polls">Polls App</a>
+      <a href="/admin">Admin Panel</a>
+    </div>
+
+    <div class="info-box">
+      <strong>Demo credentials:</strong><br>
+      Username: <code>demo</code><br>
+      Password: <code>demo</code>
+    </div>
+
+    <h2>How it works</h2>
+    <p>This application uses Pyodide to run Python in the browser, with a Service Worker intercepting all HTTP requests and routing them through Django's WSGI application. Your data is stored locally in an SQLite database in your browser.</p>
+
+    <div class="tech-stack">
+      <span>Django 5.2</span>
+      <span>Pyodide 0.29</span>
+      <span>Python 3.13</span>
+      <span>SQLite</span>
+      <span>Service Workers</span>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <a href="https://github.com/m-butterfield/django_webassembly">View on GitHub</a>
+    </p>
+  </footer>
 </body>
 </html>
